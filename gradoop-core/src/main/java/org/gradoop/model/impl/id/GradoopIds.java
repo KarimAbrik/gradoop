@@ -17,5 +17,126 @@
 
 package org.gradoop.model.impl.id;
 
-public class GradoopIds {
+import com.google.common.collect.Sets;
+import org.apache.hadoop.io.Writable;
+
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+/**
+ * Represents a set of GradoopIds.
+ *
+ * @see GradoopId
+ */
+public class GradoopIds implements Iterable<GradoopId>, Writable {
+
+  /**
+   * Holds the identifiers.
+   */
+  private Set<GradoopId> identifiers;
+
+  /**
+   * Creates a new instance.
+   */
+  public GradoopIds() {
+    identifiers = Sets.newHashSet();
+  }
+
+  GradoopIds(Long[] ids) {
+    for(Long id : ids) {
+      identifiers.add(new GradoopId(id));
+    }
+  }
+
+  public GradoopIds(GradoopId... ids) {
+    for(GradoopId id : ids) {
+      identifiers.add(id);
+    }
+  }
+
+
+  /**
+   * Adds a GradoopId to the set.
+   *
+   * @param identifier gradoop identifier
+   */
+  public void add(GradoopId identifier) {
+    identifiers.add(identifier);
+  }
+
+  /**
+   * Checks if the given GradoopId is contained in the set.
+   *
+   * @param identifier gradoop identifier
+   * @return true, iff the given identifier is in the set
+   */
+  public boolean contains(GradoopId identifier) {
+    return identifiers.contains(identifier);
+  }
+
+  @Override
+  public void write(DataOutput dataOutput) throws IOException {
+    dataOutput.writeInt(identifiers.size());
+    for (GradoopId id : identifiers) {
+      id.write(dataOutput);
+    }
+  }
+
+  @Override
+  public void readFields(DataInput dataInput) throws IOException {
+    int count = dataInput.readInt();
+    identifiers = Sets.newHashSetWithExpectedSize(count);
+
+    for (int i = 0; i < count; i++) {
+      GradoopId id = new GradoopId();
+      id.readFields(dataInput);
+      identifiers.add(id);
+    }
+  }
+
+  @Override
+  public Iterator<GradoopId> iterator() {
+    return identifiers.iterator();
+  }
+
+  public void clear() {
+    identifiers.clear();
+  }
+
+  public int size() {
+    return identifiers.size();
+  }
+
+  public static GradoopIds fromLongs(Long... ids) {
+    return new GradoopIds(ids);
+  }
+
+  public void addAll(Collection<GradoopId> gradoopIds) {
+    identifiers.addAll(gradoopIds);
+  }
+
+  public boolean containsAll(GradoopIds other) {
+    return this.identifiers.containsAll(other.identifiers);
+  }
+
+  public void addAll(GradoopIds gradoopIds) {
+    addAll(gradoopIds.identifiers);
+  }
+
+  public boolean isEmpty() {
+    return this.identifiers.isEmpty();
+  }
+
+  public boolean containsAll(Collection<GradoopId> identifiers) {
+    return identifiers.containsAll(identifiers);
+  }
+
+  public Collection<GradoopId> toCollection() {
+    return identifiers;
+  }
 }

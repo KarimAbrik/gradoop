@@ -22,12 +22,13 @@ import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.util.Writables;
 import org.apache.log4j.Logger;
 import org.gradoop.model.api.EPGMEdge;
 import org.gradoop.model.api.EPGMGraphHead;
 import org.gradoop.model.api.EPGMVertex;
+import org.gradoop.model.impl.id.GradoopId;
 import org.gradoop.storage.api.EPGMStore;
 import org.gradoop.storage.api.EdgeHandler;
 import org.gradoop.storage.api.GraphHeadHandler;
@@ -39,7 +40,6 @@ import org.gradoop.util.GConstants;
 import org.gradoop.util.GradoopConfig;
 
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.util.Iterator;
 
 /**
@@ -51,8 +51,7 @@ import java.util.Iterator;
  * @param <GD> EPGM graph head type
  */
 public class HBaseEPGMStore<VD extends EPGMVertex, ED extends EPGMEdge, GD
-  extends EPGMGraphHead> implements
-  EPGMStore<VD, ED, GD> {
+  extends EPGMGraphHead> implements EPGMStore<VD, ED, GD> {
   /**
    * Logger
    */
@@ -160,17 +159,17 @@ public class HBaseEPGMStore<VD extends EPGMVertex, ED extends EPGMEdge, GD
    * {@inheritDoc}
    */
   @Override
-  public void writeGraphHead(final PersistentGraphHead graphData) {
-    LOG.info("Writing graph data: " + graphData);
+  public void writeGraphHead(final PersistentGraphHead graphHead) {
+    LOG.info("Writing graph data: " + graphHead);
     try {
       GraphHeadHandler graphHeadHandler = config.getGraphHeadHandler();
       // graph id
-      Put put = new Put(graphHeadHandler.getRowKey(graphData.getId()));
+      Put put = new Put(graphHeadHandler.getRowKey(graphHead.getId()));
       // write graph to Put
-      put = graphHeadHandler.writeGraphHead(put, graphData);
+      put = graphHeadHandler.writeGraphHead(put, graphHead);
       // write to table
       graphHeadTable.put(put);
-    } catch (RetriesExhaustedWithDetailsException | InterruptedIOException e) {
+    } catch (IOException e) {
       e.printStackTrace();
     }
   }
@@ -200,13 +199,14 @@ public class HBaseEPGMStore<VD extends EPGMVertex, ED extends EPGMEdge, GD
   @Override
   public void writeEdge(final PersistentEdge<VD> edgeData) {
     LOG.info("Writing edge data: " + edgeData);
-    EdgeHandler<ED, VD> edgeHandler = config.getEdgeHandler();
-    // edge id
-    Put put = new Put(edgeHandler.getRowKey(edgeData.getId()));
-    // write edge data to Put
-    put = edgeHandler.writeEdge(put, edgeData);
+
     // write to table
     try {
+      EdgeHandler<ED, VD> edgeHandler = config.getEdgeHandler();
+      // edge id
+      Put put = new Put(edgeHandler.getRowKey(edgeData.getId()));
+      // write edge data to Put
+      put = edgeHandler.writeEdge(put, edgeData);
       edgeTable.put(put);
     } catch (IOException e) {
       e.printStackTrace();
@@ -217,12 +217,11 @@ public class HBaseEPGMStore<VD extends EPGMVertex, ED extends EPGMEdge, GD
    * {@inheritDoc}
    */
   @Override
-  public GD readGraph(final Long graphId) {
+  public GD readGraph(final GradoopId graphId) {
     GD graphData = null;
     try {
       GraphHeadHandler<GD> graphHeadHandler = config.getGraphHeadHandler();
-      byte[] rowKey = graphHeadHandler.getRowKey(graphId);
-      Result res = graphHeadTable.get(new Get(rowKey));
+      Result res = graphHeadTable.get(new Get(Writables.getBytes(graphId)));
       if (!res.isEmpty()) {
         graphData = graphHeadHandler.readGraphHead(res);
       }
@@ -236,7 +235,7 @@ public class HBaseEPGMStore<VD extends EPGMVertex, ED extends EPGMEdge, GD
    * {@inheritDoc}
    */
   @Override
-  public VD readVertex(final Long vertexId) {
+  public VD readVertex(final GradoopId vertexId) {
     VD vertexData = null;
     try {
       VertexHandler<VD, ED> vertexHandler = config.getVertexHandler();
@@ -255,7 +254,7 @@ public class HBaseEPGMStore<VD extends EPGMVertex, ED extends EPGMEdge, GD
    * {@inheritDoc}
    */
   @Override
-  public ED readEdge(final Long edgeId) {
+  public ED readEdge(final GradoopId edgeId) {
     ED edgeData = null;
     try {
       EdgeHandler<ED, VD> edgeHandler = config.getEdgeHandler();
@@ -409,7 +408,11 @@ public class HBaseEPGMStore<VD extends EPGMVertex, ED extends EPGMEdge, GD
     public GD next() {
       GD val = null;
       if (result != null) {
-        val = config.getGraphHeadHandler().readGraphHead(result);
+        try {
+          val = config.getGraphHeadHandler().readGraphHead(result);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
         result = null;
       }
       return val;
@@ -467,7 +470,11 @@ public class HBaseEPGMStore<VD extends EPGMVertex, ED extends EPGMEdge, GD
     public VD next() {
       VD val = null;
       if (result != null) {
-        val = config.getVertexHandler().readVertex(result);
+        try {
+          val = config.getVertexHandler().readVertex(result);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
         result = null;
       }
       return val;
@@ -525,7 +532,11 @@ public class HBaseEPGMStore<VD extends EPGMVertex, ED extends EPGMEdge, GD
     public ED next() {
       ED val = null;
       if (result != null) {
-        val = config.getEdgeHandler().readEdge(result);
+        try {
+          val = config.getEdgeHandler().readEdge(result);
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
         result = null;
       }
       return val;
