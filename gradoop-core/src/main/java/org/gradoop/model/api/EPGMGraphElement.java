@@ -17,6 +17,9 @@
 
 package org.gradoop.model.api;
 
+import org.gradoop.model.impl.id.GradoopId;
+import org.gradoop.model.impl.id.GradoopIds;
+
 import java.util.Set;
 
 /**
@@ -29,27 +32,27 @@ public interface EPGMGraphElement extends EPGMElement {
    *
    * @return all graphs of that element
    */
-  Set<Long> getGraphs();
+  GradoopIds getGraphIds();
 
   /**
-   * Adds that element to the given graph. If the element is already an element
-   * of the given graph, nothing happens.
+   * Adds that element to the given graphId. If the element is already an element
+   * of the given graphId, nothing happens.
    *
-   * @param graph the graph to be added to
+   * @param graphId the graphId to be added to
    */
-  void addGraph(Long graph);
+  void addGraphId(GradoopId graphId);
 
   /**
    * Adds the given graph set to the element.
    *
-   * @param graphs the graphs to be added
+   * @param graphIds the graphIds to be added
    */
-  void setGraphs(Set<Long> graphs);
+  void setGraphIds(GradoopIds graphIds);
 
   /**
    * Resets all graph elements.
    */
-  void resetGraphs();
+  void resetGraphIds();
 
   /**
    * Returns the number of graphs this element belongs to.
