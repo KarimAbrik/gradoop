@@ -95,9 +95,10 @@ public class EdgePojoTest {
     new EdgePojoFactory().createEdge(edgeId, sourceId, null);
   }
 
+  long id = 0;
   @Test(expected = IllegalArgumentException.class)
   public void createWithEmptyLabelTest() {
-    new EdgePojoFactory().createEdge(0L, "", 23L, 42L);
+    new EdgePojoFactory().createEdge(id++, "", 23L, 42L);
   }
 
   @Test(expected = IllegalArgumentException.class)
